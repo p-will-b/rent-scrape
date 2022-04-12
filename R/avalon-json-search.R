@@ -46,6 +46,6 @@ params <- list(
 
 # issue get, store and write results
 
-av_res <- GET(url = 'https://api.avalonbay.com/communitysearch.json', httr::add_headers(.headers = headers), query = params, user_agent(ual))
+av_res <- GET(url = 'https://api.avalonbay.com/communitysearch.json', add_headers(.headers = headers), query = params, user_agent(ual))
 av_content <- content(av_res)
 write_json(av_content[["results"]], sprintf("./data/%s_avalon-listings.json", Sys.Date()))

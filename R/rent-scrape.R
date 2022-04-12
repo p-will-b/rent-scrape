@@ -6,8 +6,9 @@ library(stringr)
 
 # read links
 
-imp_ac <- read_html("https://www.avaloncommunities.com/california/calabasas-apartments/avalon-calabasas/apartments?bedroom=2BD")
-imp_aen <- read_html("https://www.avaloncommunities.com/connecticut/norwalk-apartments/avalon-east-norwalk/apartments?bedroom=2BD")
+imp_ac <- read_html("https://new.avaloncommunities.com/california/calabasas-apartments/avalon-calabasas/?bedroom=2BD")
+imp_apas <- read_html("https://www.avaloncommunities.com/connecticut/norwalk-apartments/avalon-east-norwalk/apartments?bedroom=1BD")
+imp_av1 <- read_html("https://new.avaloncommunities.com/california/los-angeles-apartments/avalon-playa-vista/?bedroom=1BD")
 
 # process and output
 

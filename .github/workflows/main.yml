@@ -20,12 +20,11 @@ jobs:
     # Set-up R
     - name: Install packages
       run: |
-        R -e 'install.packages("rvest")'
-        R -e 'install.packages("dplyr")'
-        R -e 'install.packages("stringr")'
+        R -e 'install.packages("httr")'
+        R -e 'install.packages("jsonlite")'
     # Run R script
     - name: Scrape
-      run: Rscript R/rent-scrape.R
+      run: Rscript R/avalon-json-search.R
 
  # Add new files in data folder, commit along with other modified files, push
     - name: Commit files

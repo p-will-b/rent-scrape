@@ -1,4 +1,5 @@
 library(tidyverse)
+library(jsonlite)
 
 # import
 
@@ -39,3 +40,43 @@ ggplot(avgs, aes(as_of_date, avg_px_sf)) +
   geom_line() +
   scale_x_date(date_breaks = "2 months")
 
+# now json files
+
+impj <- list.files("./data", pattern = ".json", full.names = T)
+impo <- vector(mode = "list", length = length(impj))
+
+for(i in seq_along(impj)) {
+
+  ji <- fromJSON(impj[i], flatten = T, simplifyDataFrame = T)
+
+  # find cols which are not really lists
+
+  for(n in names(which(unlist(sapply(ji, \(x) unique(lengths(x)))) == 1))) {
+    ji[[n]] <- unlist(ji[[n]])
+  }
+
+  impo[[i]] <- ji %>%
+    unnest_legacy(cols = c(floorPlanTypes)) %>%
+    select(
+      communityName, communityAddress = communityAddress.address1,
+      communityCity = communityAddress.city, numberOfPromotions,
+      floorPlanTypeCode, effectiveRent, maxEffectiveRent, showAsAvailable,
+      hasPromotion = hasPromotion...31
+    ) %>%
+    mutate(
+      across(where(is.list), unlist),
+      as_of_date = as.Date(str_extract(impj[i], "\\d{4}-\\d{2}-\\d{2}"))
+        ) %>%
+    as_tibble() %>%
+    filter(showAsAvailable)
+
+}
+
+avalon_listings <- bind_rows(impo)
+
+avalon_listings %>%
+  count(communityName) %>%
+  print(n=Inf)
+
+avalon_listings %>%
+  filter(communityName == "Avalon Playa Vista")

@@ -15,48 +15,12 @@ rand_time <- function(n, st = Sys.Date(), et = Sys.Date() + 1, tz = "GMT") {
 
 }
 
-# get randomized UA
-
-ual <- readLines("./assets/ua.txt")
-ual <- ual[runif(1, min = 1, max = length(ual))]
-
-# build query
-
-headers <- c(
-  `authority` = 'api.avalonbay.com',
-  `accept` = '*/*',
-  `accept-language` = 'en-US,en;q=0.9',
-  `dnt` = '1',
-  `if-modified-since` = rand_time(n = 1, tz = "GMT"),
-  #`if-none-match` = '"1649761573:dtagent10237220328075400smrd"',
-  `origin` = 'https://www.avaloncommunities.com',
-  `referer` = 'https://www.avaloncommunities.com/',
-  `sec-fetch-dest` = 'empty',
-  `sec-fetch-mode` = 'cors',
-  `sec-fetch-site` = 'cross-site',
-  `sec-gpc` = '1',
-  `user-agent` = ual
-)
-
-params <- list(
-  `cityArea` = '513',
-  `floorPlanType` = '1BD',
-  `min` = '0',
-  `max` = '15000',
-  `moveInDate` = ''
-)
-
-# issue get, store and write results
-
-av_res <- GET(url = 'https://api.avalonbay.com/communitysearch.json', add_headers(.headers = headers), query = params, user_agent(ual))
-av_content <- content(av_res)
-write_json(av_content[["results"]], sprintf("./data/%s_avalon-listings.json", Sys.Date()))
-
-# NOW DO WEBSITES ---------------------------------------------------------
-
 # get links to search
 
 prop_links <- read_csv("./data/avalon-prop-links.csv", col_types = cols())
+prop_links <- sample_n(prop_links, 3) %>%
+  bind_rows(prop_links %>% filter(property == "ava-arts-district")) %>%
+  distinct()
 
 # issue get call to retrieve website
 
@@ -66,12 +30,12 @@ get_avalon_website <- possibly(
 
     # get randomized UA
 
-    new_ual <- readLines("./assets/ua.txt")
-    new_ual <- ual[runif(1, min = 1, max = length(new_ual))]
+    ual <- readLines("./assets/ua.txt")
+    ual <- ual[runif(1, min = 1, max = length(ual))]
 
     # build query
 
-    new_headers <- c(
+    headers <- c(
       `authority` = 'api.avalonbay.com',
       `accept` = '*/*',
       `accept-language` = 'en-US,en;q=0.9',
@@ -86,7 +50,7 @@ get_avalon_website <- possibly(
       `user-agent` = ual
     )
 
-    res <- GET(url = target_link, add_headers(.headers = new_headers), user_agent(new_ual))
+    res <- GET(url = target_link, add_headers(.headers = headers), user_agent(ual))
     res_content <- content(res)
     return(res_content)
 
@@ -98,9 +62,9 @@ write_prop_xml <- function(xml_doc, property_name) {
   write_xml(xml_doc, sprintf("./data/%s_%s-prop-data.xml", Sys.Date(), property_name))
 }
 
-walk(
+prop_content <- walk(
   1:nrow(prop_links), ~ {
     get_avalon_website(target_link = prop_links$links[.x]) %>%
       write_prop_xml(property_name = prop_links$property[.x])
-  }
-)
+    }
+  )

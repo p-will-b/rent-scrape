@@ -74,9 +74,49 @@ for(i in seq_along(impj)) {
 
 avalon_listings <- bind_rows(impo)
 
+t1 <- fromJSON(impj[76], flatten = T, simplifyDataFrame = T)
+
+pg
+
 avalon_listings %>%
   count(communityName) %>%
   print(n=Inf)
 
 avalon_listings %>%
   filter(communityName == "Avalon Playa Vista")
+
+avalon_listings %>%
+  filter(floorPlanTypeCode == "1BD") %>%
+  add_count(communityName) %>%
+  filter(n > 70) %>%
+  ggplot(aes(effectiveRent, communityName, color = hasPromotion)) +
+  geom_boxplot()
+
+avalon_listings %>%
+  filter(floorPlanTypeCode == "1BD") %>%
+  add_count(communityName) %>%
+  filter(n > 70) %>%
+  group_by(as_of_date, communityName) %>%
+  summarize(
+    rent = mean(effectiveRent),
+    .groups = "drop"
+    ) %>%
+  ggplot(aes(as_of_date, rent, color = communityName)) +
+  geom_line(show.legend = F) +
+  facet_wrap(~ communityName, scales = "free")
+
+
+avalon_listings %>%
+  filter(communityName == "AVA Studio City I" & floorPlanTypeCode == "1BD") %>%
+  ggplot(aes(as_of_date, effectiveRent, color = hasPromotion)) +
+  geom_point()
+
+avalon_listings %>%
+  group_by(as_of_date, floorPlanTypeCode) %>%
+  summarize(
+    avg = mean(effectiveRent),
+    sd = sd(effectiveRent)
+  ) %>%
+  ggplot(aes(as_of_date, avg, color = floorPlanTypeCode)) +
+  geom_line()
+

@@ -22,6 +22,9 @@ jobs:
       run: |
         R -e 'install.packages("httr")'
         R -e 'install.packages("jsonlite")'
+        R -e 'install.packages("tidyverse")'
+        R -e 'install.packages("xml2")'
+        R -e 'install.packages("rvest")'
     # Run R script
     - name: Scrape
       run: Rscript R/avalon-json-search.R

@@ -1,6 +1,7 @@
 library(jsonlite)
 library(httr)
 library(xml2)
+library(rvest)
 library(tidyverse)
 
 # create randomized time
@@ -107,7 +108,6 @@ save_prop_rds <- function(df, property_name) {
 
 html_json <- function(website_xml) {
   website_xml %>%
-    read_html() %>%
     html_nodes(xpath = "//script[@id='fusion-metadata']") %>%
     html_text()
 }
@@ -137,7 +137,7 @@ get_prop_unit_info <- function(json_list, element_name, col_names_general, cols_
     unnest(data) %>%
     mutate(
       leaseTerm = as.numeric(gsub("pricesPerTerms_", "", leaseTerm, fixed = T)),
-      across(c(availableDate, moveInDate, furnishedAvailableDate, lowestPricePerMoveInDate_date), ~ lubridate::mdy(gsub("(\\d+\\/\\d+/\\d+)(.*)", "\\1", .x)))
+      across(c(matches("Date(_date)?$")), ~ lubridate::mdy(gsub("(\\d+\\/\\d+/\\d+)(.*)", "\\1", .x)))
     )
 
   prop_final <- bind_cols(general_info, df_units)
@@ -158,7 +158,7 @@ parse_prop_xml <- function(website_xml_file, element_name, col_names_general, co
     col_names_general,
     cols_to_drop_unit
   ) %>%
-    mutate(as_of_date = as.Date(str_extract(website_xml_file, "\\d+-\\d+-\\d+")))
+    mutate(as_of_date = Sys.Date())
 
 }
 
@@ -176,10 +176,8 @@ walk(
       col_names_general = c("communityId", "name", "area", "geoLocation", "phone", "email"),
       cols_to_drop_unit = c("floorPlan", "address", "virtualTour", "characteristics", "promotions")
     ) %>%
-      save_prop_rds()
+      save_prop_rds(property_name = prop_links$property[.x])
     avw <- NULL
 
   }
 )
-
-

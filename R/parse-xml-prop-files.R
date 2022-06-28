@@ -11,7 +11,6 @@ xml_files <- list.files("./data", pattern = ".xml", full.names = T)
 
 html_json <- function(website_xml) {
   website_xml %>%
-    read_html() %>%
     html_nodes(xpath = "//script[@id='fusion-metadata']") %>%
     html_text()
 }

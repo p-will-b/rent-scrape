@@ -4,3 +4,4 @@
 .Ruserdata
 !/data
 !/data/*.csv
+!/data/*.xml

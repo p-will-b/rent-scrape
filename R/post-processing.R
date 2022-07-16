@@ -3,7 +3,7 @@ library(jsonlite)
 
 # import
 
-impd <- list.files("./data", pattern = ".csv", full.names = T)
+impd <- list.files("d:/data/rentscrape-data/raw", pattern = ".csv", full.names = T)
 dat <- map_dfr(impd, read_csv, col_types = cols())
 
 # clean
@@ -42,7 +42,7 @@ ggplot(avgs, aes(as_of_date, avg_px_sf)) +
 
 # now json files
 
-impj <- list.files("./data", pattern = ".json", full.names = T)
+impj <- list.files("d:/data/rentscrape-data/raw", pattern = ".json", full.names = T)
 impo <- vector(mode = "list", length = length(impj))
 
 for(i in seq_along(impj)) {
@@ -120,3 +120,68 @@ avalon_listings %>%
   ggplot(aes(as_of_date, avg, color = floorPlanTypeCode)) +
   geom_line()
 
+##### PARSING INDIVIDUAL PROPS
+
+latest_rds <- sort(
+  list.files("d:/data/rentscrape-data/processed", pattern = ".rds", full.names = T),
+  decreasing = T
+  )
+
+listing_data <- readRDS(latest_rds) %>%
+  lapply("[[", "result") %>%
+  bind_rows()
+
+pv <- listing_data %>%
+  filter(propertyName == "Avalon Playa Vista")
+
+pv %>%
+  mutate(floor = str_extract(name, "\\d")) %>%
+  distinct(as_of_date, unitNo = name, bedroom, bathroom, lowestPx = lowestPricePerMoveInDate_netEffectivePrice, leaseTerm = lowestPricePerMoveInDate_termLength)
+
+min_px <- listing_data %>%
+  select(
+    propertyArea, propertyName, as_of_date, unitNo = name, bedroom, bathroom, lowestPx = lowestPricePerMoveInDate_netEffectivePrice, leaseTerm = lowestPricePerMoveInDate_termLength
+  ) %>%
+  mutate(floor = str_extract(unitNo, "\\d")) %>%
+  distinct() %>%
+  group_by(propertyName) %>%
+  filter(floor == max(floor) & bedroom == 1) %>%
+  mutate(bed_bath = sprintf("%s bed: %s bath", bedroom, bathroom)) %>%
+  group_by(as_of_date, propertyName) %>%
+  arrange(lowestPx) %>%
+  filter(row_number() == 1) %>%
+  ungroup()
+
+areas_not <- c("camarillo", "mission-viejo", "glendora", "ranch-santa-margarita", "san-diego", "lake-forest", "seal-beach", "vista", "irvine", "pomona")
+
+min_px %>%
+  filter(!propertyArea %in% areas_not) %>%
+  ggplot(aes(as_of_date, lowestPx)) +
+  geom_line() +
+  facet_wrap(~ propertyName)
+
+
+hist_csv <- listing_dat %>%
+  filter(location == "calabasas") %>%
+  group_by(as_of_date) %>%
+  summarize(effectiveRent = min(px))
+
+hist_json <- avalon_listings %>%
+  filter(communityName == "Avalon Calabasas" & floorPlanTypeCode == "2BD" & showAsAvailable) %>%
+  select(as_of_date, effectiveRent)
+
+all_cbas <- bind_rows(hist_csv, hist_json) %>%
+  group_by(as_of_date) %>%
+  summarize(minRent = mean(effectiveRent))
+
+ggplot(all_cbas, aes(as_of_date, minRent)) +
+  geom_line()
+
+
+avalon_listings %>%
+  filter(floorPlanTypeCode == "1BD") %>%
+  add_count(communityName)
+
+
+min_px %>%
+  count(propertyArea)

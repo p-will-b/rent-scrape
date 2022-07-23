@@ -5,3 +5,4 @@
 !/data
 !/data/*.csv
 !/data/*.xml
+copy-clean.ps1

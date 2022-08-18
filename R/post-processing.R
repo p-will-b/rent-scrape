@@ -122,14 +122,12 @@ avalon_listings %>%
 
 ##### PARSING INDIVIDUAL PROPS
 
-latest_rds <- sort(
+all_rds <- sort(
   list.files("d:/data/rentscrape-data/processed", pattern = ".rds", full.names = T),
   decreasing = T
-  )
+  )[1]
 
-listing_data <- readRDS(latest_rds) %>%
-  lapply("[[", "result") %>%
-  bind_rows()
+listing_data <- read_rds(latest_rds)
 
 pv <- listing_data %>%
   filter(propertyName == "Avalon Playa Vista")

@@ -4,6 +4,7 @@ library(xml2)
 library(rvest)
 library(tidyverse)
 library(lubridate)
+library(fst)
 
 # string literals
 
@@ -178,5 +179,9 @@ for(i in seq_along(parsed_xmls)) {
 }
 
 listing_data <- parsed_xmls[sapply(sapply(parsed_xmls, "[[", "error"), is.null)]
+old_listing_data <- readRDS(sprintf("d:/data/rentscrape-data/processed/%s_listing-data.rds", last_rds)) %>%
+  lapply("[[", "result") %>%
+  bind_rows()
+all_listing_data <- bind_rows(old_listing_data, listing_data)
 last_xml <- path_dates(xml_unproc, find_last = TRUE)
-saveRDS(listing_data, paste0(proc_data_path, "/", last_xml, "_listing-data.rds"))
+saveRDS(all_listing_data, paste0(proc_data_path, "/", last_xml, "_listing-data.rds"))

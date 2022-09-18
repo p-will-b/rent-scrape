@@ -1,5 +1,6 @@
 library(tidyverse)
 library(jsonlite)
+library(fst)
 
 # import
 
@@ -122,12 +123,12 @@ avalon_listings %>%
 
 ##### PARSING INDIVIDUAL PROPS
 
-all_rds <- sort(
-  list.files("d:/data/rentscrape-data/processed", pattern = ".rds", full.names = T),
+last_fst <- sort(
+  list.files("d:/data/rentscrape-data/processed", pattern = ".fst", full.names = T),
   decreasing = T
   )[1]
 
-listing_data <- read_rds(latest_rds)
+listing_data <- read_fst(last_fst)
 
 pv <- listing_data %>%
   filter(propertyName == "Avalon Playa Vista")
@@ -153,7 +154,23 @@ min_px <- listing_data %>%
 areas_not <- c("camarillo", "mission-viejo", "glendora", "ranch-santa-margarita", "san-diego", "lake-forest", "seal-beach", "vista", "irvine", "pomona")
 
 min_px %>%
-  filter(!propertyArea %in% areas_not) %>%
+  filter(propertyName == "Avalon Playa Vista") %>%
+  ggplot(aes(as_of_date, lowestPx)) +
+  geom_line() +
+  facet_wrap(~ propertyName)
+
+listing_data %>%
+  filter(propertyName == "Avalon Playa Vista" & as_of_date == "2022-09-10") %>%
+  count(name)
+
+min_px %>%
+  filter(propertyName == "Avalon Playa Vista") %>%
+  arrange(desc(as_of_date)) %>%
+  print(n=Inf)
+
+
+min_px %>%
+  filter(propertyArea %in% "vista") %>%
   ggplot(aes(as_of_date, lowestPx)) +
   geom_line() +
   facet_wrap(~ propertyName)

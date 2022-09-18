@@ -5,6 +5,7 @@ library(rvest)
 library(tidyverse)
 library(lubridate)
 library(fst)
+library(data.table)
 
 # string literals
 
@@ -162,9 +163,9 @@ path_dates <- function(yyyy_mm_dd_path, find_last = FALSE) {
 # using RDS write dats, find relevant xml files, parse, & keep only those where succeeded
 
 xml_files <- list.files(raw_data_path, pattern = ".xml", full.names = TRUE)
-rds_files <- list.files(proc_data_path, pattern = ".rds", full.names = TRUE)
-last_rds <- path_dates(rds_files, find_last = TRUE)
-xml_unproc <- xml_files[path_dates(xml_files) > last_rds]
+fst_files <- list.files(proc_data_path, pattern = ".fst", full.names = TRUE)
+last_fst <- path_dates(fst_files, find_last = TRUE)
+xml_unproc <- xml_files[path_dates(xml_files) > last_fst]
 
 n_files <- length(xml_unproc)
 parsed_xmls <- vector(mode = "list", length = n_files)
@@ -179,9 +180,9 @@ for(i in seq_along(parsed_xmls)) {
 }
 
 listing_data <- parsed_xmls[sapply(sapply(parsed_xmls, "[[", "error"), is.null)]
-old_listing_data <- readRDS(sprintf("d:/data/rentscrape-data/processed/%s_listing-data.rds", last_rds)) %>%
-  lapply("[[", "result") %>%
-  bind_rows()
-all_listing_data <- bind_rows(old_listing_data, listing_data)
+old_listing_data <- read_fst(sprintf("d:/data/rentscrape-data/processed/%s_listing-data.fst", last_fst))
+new_ld <- bind_rows(lapply(listing_data, "[[", "result"))
+all_listing_data <- bind_rows(old_listing_data, new_ld)
+all_listing_data$finishPackage <- NULL
 last_xml <- path_dates(xml_unproc, find_last = TRUE)
-saveRDS(all_listing_data, paste0(proc_data_path, "/", last_xml, "_listing-data.rds"))
+write_fst(all_listing_data, paste0(proc_data_path, "/", last_xml, "_listing-data.fst"))

@@ -1,6 +1,8 @@
 library(tidyverse)
 library(jsonlite)
 library(fst)
+library(RcppSimdJson)
+library(data.table)
 
 # import
 
@@ -129,9 +131,72 @@ last_fst <- sort(
   )[1]
 
 listing_data <- read_fst(last_fst)
+setDT(listing_data, key = c("as_of_date", "propertyName"))
 
-pv <- listing_data %>%
-  filter(propertyName == "Avalon Playa Vista")
+pv <- listing_data[propertyName == "Avalon Playa Vista"]
+setnames(
+  pv,
+  old = c("name", "lowestPricePerMoveInDate_netEffectivePrice", "lowestPricePerMoveInDate_termLength"),
+  new = c("unitNo", "lowestPx", "lowestPxLeaseTerm")
+  )
+pv[, floor := str_extract(unitNo, "\\d")]
+upv <- unique(pv, by = c("as_of_date", "unitNo", "lowestPx", "leaseTerm"))
+summary(lm(netEffectivePrice ~ bedroom + bathroom + floor + leaseTerm, data = upv))
+
+upv[
+  floor == "4" & bedroom == 1,
+  .(minPx = median(netEffectivePrice))
+  , by = .(as_of_date)
+  ] %>%
+  ggplot(aes(as_of_date, minPx)) +
+  geom_line()
+
+# read json
+
+jsons <- sort(
+  list.files("d:/data/rentscrape-data/raw", pattern = ".json", full.names = T),
+  decreasing = T
+)
+
+csvs <- sort(
+  list.files("d:/data/rentscrape-data/raw", pattern = ".csv", full.names = T),
+  decreasing = T
+)
+
+# get calabasas csv data
+
+calabasas_csv <- read_csv(csvs, col_types = cols())
+setDT(calabasas_csv)
+calabasas_data <- calabasas_csv[location == "calabasas" & listings != "no listings"]
+calabasas_data[, px := parse_number(str_extract(listings, "(?<=\\$)[0-9,]+"))]
+cbas2b2bcsv <- calabasas_data[, .(medPx = median(px)), by = "as_of_date"]
+
+# get calabasas data
+
+get_calabasas_json <- function(json_orig) {
+  inj <- fparse(paste(readLines(json_orig), collapse = "\n"))
+  setDT(inj)
+  inj[communityCode == "CA541", floorPlanTypes][[1]]
+}
+
+calabasas_list <- lapply(jsons, get_calabasas_json)
+names(calabasas_list) <- str_extract(jsons, "[0-9-]{4,}")
+calabasas_df <- rbindlist(calabasas_list, use.names = TRUE, idcol = "as_of_date")
+calabasas_df[, as_of_date := as.Date(as_of_date)]
+calabasas_df[, names(calabasas_df) := lapply(.SD, unlist, use.names = FALSE)]
+cbas2b2bjson <- calabasas_df[
+  display == "2 bedrooms" & showAsAvailable == TRUE,
+  .(medPx = median(effectiveRent)),
+  by = "as_of_date"
+]
+
+cbas2b2b <- rbindlist(list(cbas2b2bcsv, cbas2b2bjson))
+ggplot(cbas2b2b, aes(as_of_date, medPx)) +
+  geom_line()
+
+#
+
+unique(cbas2b2b)
 
 pv %>%
   mutate(floor = str_extract(name, "\\d")) %>%

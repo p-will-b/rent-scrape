@@ -186,3 +186,15 @@ all_listing_data <- bind_rows(old_listing_data, new_ld)
 all_listing_data$finishPackage <- NULL
 last_xml <- path_dates(xml_unproc, find_last = TRUE)
 write_fst(all_listing_data, paste0(proc_data_path, "/", last_xml, "_listing-data.fst"))
+setDT(all_listing_data, key = c("as_of_date", "propertyName"))
+
+# analyze
+
+rentProp <- all_listing_data[
+  , .(median_rent = median(netEffectivePrice, na.rm = TRUE)),
+  by = c("as_of_date", "propertyName")
+]
+
+ggplot(rentProp[propertyName == "Avalon Playa Vista"], aes(as_of_date, median_rent)) +
+  geom_line(linewidth = 1) +
+  scale_x_date(date_breaks = "1 month")
